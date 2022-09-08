@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <script src="ZSDK.js" charset="utf-8"></script>
+  <script src="ZohoCrmHelper.js" charset="utf-8"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+</head>
+
+<body>
+  <div class="settings-bt">
+    <img class="settings-img" style="width: 30px;height: 30px" src="./assets/settings.png" />
+  </div>
+  <div class="settings-menu" style="display:none;position:absolute">
+    <div class="config-settings">
+      <div class="language-settings-wrapper">
+        <div class="config-head">Language</div>
+        <select class="language-select">
+          <option value="english">English</option>
+          <option value="portugues">Portugues</option>
+        </select>
+      </div>
+      <div class="country-settings-wrapper">
+        <div class="config-head">Country Code</div>
+        <select class="country-select">
+          <option value="1">+1 USA</option>
+          <option value="55">+55 BRASIL</option>
+        </select>
+      </div>
+      <div class="webapi-settings-wrapper">
+        <div class="config-head">Use Desktop App</div>
+        <div><input class="usedesk-checkbox" type="checkbox" /></div>
+      </div>
+      <div class="confirmation-settings-wrapper">
+        <div class="config-head">Sent Confirmation</div>
+        <div><input class="sentconf-checkbox" type="checkbox" /></div>
+      </div>
+      <!--<div class="close-area"><button>Save</button></div>-->
+    </div>
+    <div class="custom-msg-settings">
+      <!--custom-msg-board divs will be pushed here-->
+    </div>
+    <div class="save-settings-bt">Save</div>
+  </div>
+  <main style="height:750px;">
+    <!--375 metade-->
+    <div class="leads-fila">
+    </div>
+  </main>
+
+  <script>
+
+    const namespace = "testewhatsapp" // verificar ao escolher o nome da extensão
+    const extensionModule = "testewhatsapp__extensionitgoal"
+
+    let baseText;
+    let newWindow;
+    let settings;
+
+    const documentBody = document.getElementsByTagName("body")
+    const settingsBt = document.querySelector(".settings-bt")
+    const settingsMenu = document.querySelector(".settings-menu")
+    const leadsFila = document.querySelector(".leads-fila")
+    const ctMessageSettings = document.querySelector(".custom-msg-settings")
+    const saveConfigBt = document.querySelector(".save-settings-bt")
+    const useDesktInput = document.querySelector(".usedesk-checkbox")
+    const countrySelect = document.querySelector(".country-select")
+    const languageSelect = document.querySelector(".language-select")
+    const sentConfirmInput = document.querySelector(".sentconf-checkbox")
+
+    const countryCodes = {
+      brasil: "55",
+      usa: "1"
+    }
+
+    /////////////////////////////  TRADUÇÕES  /////////////////////////////////
+    /////////////////////////////  TRADUÇÕES  /////////////////////////////////
+    /*
+        const toTranslate = [
+            { comp: fill, tsl: ["Aplicar_portugues"], onFalse: "Apply" },
+            { comp: configScreen, tsl: ["Configurar_portugues"], onFalse: "Settings" },
+            { comp: leadsLabel, tsl: ["Cl. Potenciais_portugues"], onFalse: "Leads" },
+            { comp: accountsLabel, tsl: ["Contas_portugues"], onFalse: "Accounts" },
+            { comp: contactsLabel, tsl: ["Contatos_portugues"], onFalse: "Contacts" },
+            { comp: fullAddressLabel, tsl: ["End. Completo_portugues"], onFalse: "Full Address" },
+            { comp: streetLabel, tsl: ["Rua_portugues"], onFalse: "Street" },
+            { comp: numberLabel, tsl: ["Número_portugues"], onFalse: "Number" },
+            { comp: districtLabel, tsl: ["Bairro_portugues"], onFalse: "District" },
+            { comp: cityLabel, tsl: ["Cidade_portugues"], onFalse: "Cidade" },
+            { comp: stateLabel, tsl: ["Estado_portugues"], onFalse: "State" },
+            { comp: countryLabel, tsl: ["País_portugues"], onFalse: "Country" },
+            { comp: zipCodeLabel, tsl: ["CEP_portugues"], onFalse: "Zip Code" },
+            { comp: saveConfigBt, tsl: ["Salvar_portugues"], onFalse: "Save" },
+            { comp: returnToMain, tsl: ["Voltar_portugues"], onFalse: "Back" },
+            { comp: searchBar, tsl: ["Digite o endereço..._portugues"], onFalse: "Type the address...", altKey: "placeholder" },
+          ]
+    */
+
+    /////////////////////////////  TRADUÇÕES  /////////////////////////////////
+    /////////////////////////////  TRADUÇÕES  /////////////////////////////////
+
+    const leads = []
+
+    const openSettingsMenu = (e) => {
+      e?.stopPropagation()
+      closeAllPickers()
+
+      if (settingsMenu.style.display == "none") {
+        settingsMenu.style.display = "grid"
+      } else {
+        settingsMenu.style.display = "none"
+      }
+
+    }
+
+    const saveSettings = () => {
+
+      if (!settings) {
+        console.log("Settings do not exist, creating a new one...")
+
+        const initialConfig = { Entity: extensionModule, APIData: { Name: "settings" }, Trigger: [] }
+
+        const keysToAdd = [{ k: "Language", v: "English" }, { k: "Country", v: "BRASIL" }, { k: "SentConfirmation", v: true },
+        { k: "UseDesktop", v: true }, { k: "userData", v: JSON.stringify({ ctMessages: [] }) }];
+
+        keysToAdd.forEach((e) => {
+          initialConfig.APIData[namespace + "__" + e?.k] = e?.v
+        })
+
+        ZOHO.CRM.API.insertRecord(initialConfig).then((res) => {
+          console.log("##insertRecord", res)
+          ZOHO.CRM.UI.Popup.close()
+        }).catch((err) => {
+          console.log("##insertRecord - error:", err)
+        })
+        return
+      }
+
+      const configs = { Entity: extensionModule, APIData: { Name: "settings" }, Trigger: [] }
+
+      const { Language, Country, SentConfirmation, UseDesktop, userData } = settings;
+
+      console.log("Settings exists, updating...")
+
+      if (typeof settings?.id != 'string') {
+        console.log("##saveSettings - ID não encontrado no 'settings", settings)
+        ZOHO.CRM.UI.Popup.close()
+        return
+      }
+
+      configs.APIData.id = settings?.id
+
+      const keysToAdd = [{ k: "Language", v: languageSelect?.value }, { k: "Country", v: countrySelect?.value?.toUpperCase() }, { k: "SentConfirmation", v: sentConfirmInput?.checked },
+      { k: "UseDesktop", v: useDesktInput?.checked }, { k: "userData", v: JSON.stringify({ctMessages:[]}) }];
+
+      keysToAdd.forEach((e) => {
+        configs.APIData[namespace + "__" + e?.k] = e?.v
+      })
+
+      console.log("configs", configs)
+
+      ZOHO.CRM.API.updateRecord(configs).then((res) => {
+        console.log("##updateRecord result", res)
+        ZOHO.CRM.UI.Popup.close()
+
+      }).catch((err) => {
+        console.log("##updateRecord error:" + JSON.stringify(err))
+        ZOHO.CRM.UI.Popup.close()
+      })
+
+    }
+
+    const removeFromList = (e) => {
+      e?.stopPropagation()
+
+      console.log("removeFromList", e?.target)
+
+      const [parentId, phone] = e?.target?.id?.split("s") || []
+
+      console.log('parentId', parentId)
+      console.log('phone', phone)
+      console.log("settings ins tarndad", settings)
+
+      const text = "aaaa"
+
+      const phoneCodes = { brasil: "55" }
+
+      const { Country, SentConfirmation, UseDesktop } = settings || {}
+
+      typeof phone == 'string' && window.open(`https://${UseDesktop ? "api" : "web"}.whatsapp.com/send?phone=+${phoneCodes?.[Country?.toLowerCase()] || "1"}${phone}&text=${text}`, "_blank")
+
+      const elementToRemove = document.getElementById(parentId)
+
+      if (SentConfirmation && confirm("A mensagem foi enviada?")) {
+
+        elementToRemove.style.left = "-2000px";
+        elementToRemove.style.left = "-2000px";
+        setTimeout(() => {
+          elementToRemove.remove()
+        }, 200)
+        return
+      } else {
+        return
+      }
+
+      elementToRemove.style.left = "-2000px";
+      setTimeout(() => {
+        elementToRemove.remove()
+      }, 200)
+
+    }
+
+    const closeAllPickers = () => {
+      const pickers = document.querySelectorAll(".custom-msg-picker")
+      pickers.forEach((e) => e.style.display = "none")
+    }
+
+    const closeSettings = () => {
+      settingsMenu.style.display = "none"
+    }
+
+    const openCustomMessages = (e) => {
+      e?.stopPropagation()
+      closeSettings()
+      let children = e?.target?.children;
+      children = children?.[children?.length - 1];
+
+      if (children?.style?.display == "none") {
+        closeAllPickers()
+        children.style.display = "grid"
+      } else {
+        children.style.display = "none"
+        return
+      }
+
+      console.log("openCustomMessages children", children?.[children?.length - 1])
+
+      const [parentId, phone] = e?.target?.id?.split("c") || []
+
+    }
+
+    settingsBt.addEventListener("click", openSettingsMenu)
+
+    saveConfigBt.addEventListener("click", saveSettings)
+
+    ZOHO.embeddedApp.on("PageLoad", function (app) {
+
+      ZOHO.CRM.API.getAllRecords({ Entity: extensionModule }).then((res1) => {
+
+        const { data } = res1 || {}
+
+        Array.isArray(data) && data.find((e) => {
+          if (e?.Name?.toLowerCase() == "settings") {
+            settings = e;
+            return true
+          }
+        })
+
+        typeof settings == "object" && !Array.isArray(settings) && Object.entries({ ...settings }).forEach(([k, v], i) => {
+          if (!i) settings = { id: settings?.id };
+          if (k?.includes(namespace + "__")) {
+            settings[k?.split(namespace + "__")?.[1]] = v;
+          }
+        })
+
+        let t = {
+          ctMessages: ["Olá cliente #customer , meu nome é #myName, como vc está #leadName?", "Oi #customer, vi que se interessou em X", "Desculpe o incômodo, podemos conversar?", "Olá, bom dia!", "A sua proposta está aqui #customer, de uma olhada! , meu nome é #myName, como vc está #leadName?"]
+        }
+
+        t = JSON.stringify(t)
+
+        console.log("settings", settings)
+        t = JSON.parse(t)
+
+        let [r, g, b] = [70, 235, 163]
+
+        Array.isArray(t?.ctMessages) && t?.ctMessages?.forEach((e, i) => {
+          if (i >= 9) return;
+          r += 20, b += 70;
+          const msgToAdd = `<div class="custom-msg-board" style="background:rgb(${r},${g},${b})" id=${"ctmsg" + i}>
+            ${e}</div>`;
+          ctMessageSettings.insertAdjacentHTML('beforeend', msgToAdd);
+        })
+
+        ZOHO.CRM.API.getAllRecords({ Entity: "Leads" }).then((res2) => {
+
+          Array.isArray(res2?.data) && res2.data.forEach((e) => {
+
+            if (!e?.Mobile && !e?.Phone) return;
+
+            validPhone = e?.Mobile || e?.Phone
+
+            const tries = e?.[namespace + "__ContactTries"]
+
+            if (!tries) e[namespace + "__ContactTries"] = 0;
+
+            if (tries == 2) return;
+
+            const [eName, provider] = e?.Email?.split("@") || []
+
+            const leadHTML = `
+          <div class="lead-wrapper" id=${e?.id} >
+                      <div class="lead-infos">
+                        <div class="lead-name"><div>Name - <b>${e?.Full_Name?.toUpperCase() || "- - - - -"}</b></div></div>
+                        <div class="lead-email"><div>Email - ${eName && provider ? eName + "<strong>@" + provider + "</strong>" : "- - - - -"}</div></div>
+                        </div>
+                      <div class="contact-tries">${e?.[namespace + "__ContactTries"]}</div>
+                      <div class="send-msg-bt">
+                        <div class="standard-msg-bt aa" id=${e?.id + "s" + validPhone}><img class="msg-img" src="./assets/msg-base.png" /></div>
+                        <div class="custom-msg-bt dd" id=${e?.id + "c" + validPhone}>
+                          <img class="custom-msg-img" src="./assets/msg-custom.png" />
+                          <div class="custom-msg-picker" style="display:none;position:absolute;">
+                            <section>1</section>
+                            <section>2</section>
+                            <section>3</section>
+                            <section>4</section>
+                            <section>5</section>
+                            </div>
+                          </div>
+                        </div>
+          </div`;
+
+            leadsFila.insertAdjacentHTML('beforeend', leadHTML);
+          })
+
+          const standardMsg = document.querySelectorAll(".standard-msg-bt")
+          const customMsg = document.querySelectorAll(".custom-msg-bt")
+
+          standardMsg.forEach((e) => {
+            e.addEventListener("click", removeFromList)
+          })
+
+          customMsg.forEach((e) => {
+            e.addEventListener("click", openCustomMessages)
+          })
+
+        }).catch((err) => {
+          console.log("#getAllRecords - leads", err)
+        }) // fetchLeads
+
+
+      }).catch((err) => {
+        console.log("#getAllRecords - settings", err)
+      }) // fetchSettings
+
+
+
+
+    })
+
+    ZOHO.embeddedApp.init();
+
+  </script>
+
+</body>
+<!-- Usar widget 400x400 -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300,400,500,600,700,800&display=swap');
+
+  * {
+    font-family: 'Inter', sans-serif;
+  }
+
+  body {
+    background-image: linear-gradient(rgb(39, 51, 56), rgb(97, 131, 146));
+    padding: 3px;
+    overflow: hidden;
+  }
+
+  img {
+    pointer-events: none;
+  }
+
+  .leads-fila {
+    margin-top: 35px;
+    display: grid;
+    grid-auto-flow: row;
+    width: 500px;
+    height: fit-content;
+    gap: 5px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .lead-wrapper {
+    display: grid;
+    grid-template-columns: 60% 10% 30%;
+    height: 60px;
+    gap: 5px;
+    transition: all 1s ease 0s;
+    position: relative;
+    left: 0;
+    top: 0;
+  }
+
+  .lead-infos {
+    background-image: linear-gradient(rgb(219, 229, 236), rgb(182, 201, 213));
+    border-radius: 10px;
+    display: grid;
+    grid-template-rows: 50% 50%;
+    align-items: center;
+    padding-left: 25px;
+    font-weight: 200;
+  }
+
+  .lead-email {
+    color: rgb(86, 86, 86);
+  }
+
+  .lead-name {
+    color: rgb(86, 86, 86);
+  }
+
+  strong {
+    color: rgb(19, 44, 30);
+    font-weight: 600 !important;
+  }
+
+  .contact-tries {
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;
+    background: rgb(220, 230, 237);
+    border-radius: 10px;
+    color: rgb(39, 51, 56);
+  }
+
+  .send-msg-bt {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    gap: 2px;
+  }
+
+  .standard-msg-bt {
+    background: rgb(50, 236, 124);
+    border-bottom-left-radius: 10px;
+    border-top-left-radius: 10px;
+    cursor: pointer;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .standard-msg-bt:hover {
+    background: rgb(75, 255, 147);
+  }
+
+  .msg-img {
+    height: 30px;
+    width: auto
+  }
+
+  .custom-msg-bt {
+    background: rgb(0, 138, 129);
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    cursor: pointer;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .custom-msg-bt:hover {
+    background: rgb(0, 115, 108);
+  }
+
+  .custom-msg-img {
+    height: 40px;
+    width: auto;
+  }
+
+  .custom-msg-picker {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    left: 170px;
+    top: auto;
+    bottom: auto;
+    background: rgb(0, 138, 129, 0.4);
+    backdrop-filter: blur(5px);
+    border-radius: 20px;
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgb(75, 255, 147);
+    padding: 10px;
+    gap: 5px;
+    justify-content: center;
+    grid-template-columns: repeat(auto-fit, 200px);
+    grid-template-rows: repeat(auto-fit, 60px);
+    z-index: 10
+  }
+
+  section {
+    background: rgb(50, 236, 124);
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+  }
+
+  .settings-bt {
+    position: absolute;
+    height: 50px;
+    width: 50px;
+    background-color: rgb(240, 241, 243);
+    left: -20px;
+    top: -20px;
+    border-bottom-right-radius: 50%;
+    cursor: pointer;
+    transition: all 0.15s ease 0s;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .settings-img {
+    width: 30px;
+    height: 30px
+  }
+
+  .settings-bt:hover {
+    left: -5px;
+    top: -5px;
+  }
+
+  .settings-menu {
+    width: 550px;
+    height: 300px;
+    left: 15px;
+    top: 15px;
+    background: rgb(0, 138, 129, 0.4);
+    backdrop-filter: blur(5px);
+    border-radius: 20px;
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgb(75, 255, 147);
+    z-index: 10;
+    grid-template-rows: 35% 65%;
+    gap: 2px;
+    padding: 10px;
+  }
+
+  .config-settings {
+    display: grid;
+    grid-template-rows: 23% 23% 23% 23%;
+    gap: 2px;
+  }
+
+  .config-head {
+    background: rgb(50, 236, 124);
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    border-bottom-left-radius: 5px;
+    border-top-left-radius: 5px;
+    font-size: 13px;
+    color: rgb(32, 75, 51)
+  }
+
+  .language-settings-wrapper {
+    display: grid;
+    grid-template-columns: 20% 20%;
+    gap: 1px
+  }
+
+  .country-settings-wrapper {
+    display: grid;
+    grid-template-columns: 20% 20%;
+    gap: 1px
+  }
+
+  .webapi-settings-wrapper {
+    display: grid;
+    grid-template-columns: 20% 20px;
+    gap: 1px
+  }
+
+  .confirmation-settings-wrapper {
+    display: grid;
+    grid-template-columns: 20% 20px;
+    gap: 1px
+  }
+
+  .custom-msg-settings {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 5px;
+    justify-content: center;
+  }
+
+  .close-area {
+    background: red;
+  }
+
+  button {
+    position: relative;
+    left: 70px;
+    height: 50px;
+    width: 100px
+  }
+
+  input {
+    position: relative;
+    top: 3px;
+    left: 3px;
+  }
+
+  input[type=checkbox] {
+    transform: scale(1.8);
+  }
+
+  .custom-msg-board {
+    cursor: pointer;
+    overflow-y: scroll;
+    padding: 4px;
+    border-radius: 10px;
+    color: rgb(0, 115, 108)
+  }
+
+  .custom-msg-board::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .custom-msg-board {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .save-settings-bt {
+    position: absolute;
+    height: 40px;
+    width: 100px;
+    background: rgb(0, 138, 129);
+    top: 10px;
+    right: 10px;
+    border-radius: 10px;
+    border-style: solid;
+    border-width: 1px;
+    border-color: whitesmoke;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    color: whitesmoke;
+    cursor: pointer
+  }
+
+  .save-settings-bt:hover {
+    background: rgb(16, 159, 149);
+  }
+</style>
+
+</html>
