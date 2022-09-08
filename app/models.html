@@ -18,15 +18,19 @@
       <div class="language-settings-wrapper">
         <div class="config-head">Language</div>
         <select class="language-select">
+          <!--
           <option value="english">English</option>
           <option value="portugues">Portugues</option>
+          -->
         </select>
       </div>
       <div class="country-settings-wrapper">
         <div class="config-head">Country Code</div>
         <select class="country-select">
+          <!--
           <option value="1">+1 USA</option>
           <option value="55">+55 BRASIL</option>
+          -->
         </select>
       </div>
       <div class="webapi-settings-wrapper">
@@ -37,7 +41,6 @@
         <div class="config-head">Sent Confirmation</div>
         <div><input class="sentconf-checkbox" type="checkbox" /></div>
       </div>
-      <!--<div class="close-area"><button>Save</button></div>-->
     </div>
     <div class="custom-msg-settings">
       <!--custom-msg-board divs will be pushed here-->
@@ -71,32 +74,30 @@
     const sentConfirmInput = document.querySelector(".sentconf-checkbox")
 
     const countryCodes = {
-      brasil: "55",
-      usa: "1"
+      usa: "1",
+      brasil: "55"
     }
 
     /////////////////////////////  TRADUÇÕES  /////////////////////////////////
     /////////////////////////////  TRADUÇÕES  /////////////////////////////////
-    /*
-        const toTranslate = [
-            { comp: fill, tsl: ["Aplicar_portugues"], onFalse: "Apply" },
-            { comp: configScreen, tsl: ["Configurar_portugues"], onFalse: "Settings" },
-            { comp: leadsLabel, tsl: ["Cl. Potenciais_portugues"], onFalse: "Leads" },
-            { comp: accountsLabel, tsl: ["Contas_portugues"], onFalse: "Accounts" },
-            { comp: contactsLabel, tsl: ["Contatos_portugues"], onFalse: "Contacts" },
-            { comp: fullAddressLabel, tsl: ["End. Completo_portugues"], onFalse: "Full Address" },
-            { comp: streetLabel, tsl: ["Rua_portugues"], onFalse: "Street" },
-            { comp: numberLabel, tsl: ["Número_portugues"], onFalse: "Number" },
-            { comp: districtLabel, tsl: ["Bairro_portugues"], onFalse: "District" },
-            { comp: cityLabel, tsl: ["Cidade_portugues"], onFalse: "Cidade" },
-            { comp: stateLabel, tsl: ["Estado_portugues"], onFalse: "State" },
-            { comp: countryLabel, tsl: ["País_portugues"], onFalse: "Country" },
-            { comp: zipCodeLabel, tsl: ["CEP_portugues"], onFalse: "Zip Code" },
-            { comp: saveConfigBt, tsl: ["Salvar_portugues"], onFalse: "Save" },
-            { comp: returnToMain, tsl: ["Voltar_portugues"], onFalse: "Back" },
-            { comp: searchBar, tsl: ["Digite o endereço..._portugues"], onFalse: "Type the address...", altKey: "placeholder" },
-          ]
-    */
+    const toTranslate = [
+      { comp: "", tsl: ["Apply_english","Aplicar_portugues", ], onFalse: "Apply" },
+      { comp: "", tsl: ["Configurar_portugues"], onFalse: "Settings" },
+      { comp: "", tsl: ["Cl. Potenciais_portugues"], onFalse: "Leads" },
+      { comp: "", tsl: ["Contas_portugues"], onFalse: "Accounts" },
+      { comp: "", tsl: ["Contatos_portugues"], onFalse: "Contacts" },
+      { comp: "", tsl: ["End. Completo_portugues"], onFalse: "Full Address" },
+      { comp: "", tsl: ["Rua_portugues"], onFalse: "Street" },
+      { comp: "", tsl: ["Número_portugues"], onFalse: "Number" },
+      { comp: "", tsl: ["Bairro_portugues"], onFalse: "District" },
+      { comp: "", tsl: ["Cidade_portugues"], onFalse: "Cidade" },
+      { comp: "", tsl: ["Estado_portugues"], onFalse: "State" },
+      { comp: "", tsl: ["País_portugues"], onFalse: "Country" },
+      { comp: "", tsl: ["CEP_portugues"], onFalse: "Zip Code" },
+      { comp: "", tsl: ["Salvar_portugues"], onFalse: "Save" },
+      { comp: "", tsl: ["Voltar_portugues"], onFalse: "Back" },
+      { comp: "", tsl: ["Digite o endereço..._portugues"], onFalse: "Type the address...", altKey: "placeholder" },
+    ]
 
     /////////////////////////////  TRADUÇÕES  /////////////////////////////////
     /////////////////////////////  TRADUÇÕES  /////////////////////////////////
@@ -131,8 +132,9 @@
 
         ZOHO.CRM.API.insertRecord(initialConfig).then((res) => {
           console.log("##insertRecord", res)
-          ZOHO.CRM.UI.Popup.close()
+          //ZOHO.CRM.UI.Popup.close()
         }).catch((err) => {
+          //ZOHO.CRM.UI.Popup.close()
           console.log("##insertRecord - error:", err)
         })
         return
@@ -152,8 +154,10 @@
 
       configs.APIData.id = settings?.id
 
+      console.log("countryy", countrySelect)
+
       const keysToAdd = [{ k: "Language", v: languageSelect?.value }, { k: "Country", v: countrySelect?.value?.toUpperCase() }, { k: "SentConfirmation", v: sentConfirmInput?.checked },
-      { k: "UseDesktop", v: useDesktInput?.checked }, { k: "userData", v: JSON.stringify({ctMessages:[]}) }];
+      { k: "UseDesktop", v: useDesktInput?.checked }, { k: "userData", v: JSON.stringify({ ctMessages: [] }) }];
 
       keysToAdd.forEach((e) => {
         configs.APIData[namespace + "__" + e?.k] = e?.v
@@ -163,11 +167,11 @@
 
       ZOHO.CRM.API.updateRecord(configs).then((res) => {
         console.log("##updateRecord result", res)
-        ZOHO.CRM.UI.Popup.close()
+        //ZOHO.CRM.UI.Popup.close()
 
       }).catch((err) => {
         console.log("##updateRecord error:" + JSON.stringify(err))
-        ZOHO.CRM.UI.Popup.close()
+        //ZOHO.CRM.UI.Popup.close()
       })
 
     }
@@ -241,6 +245,48 @@
 
     }
 
+    const mountSettings = () => {
+
+      let t = {
+        ctMessages: ["Olá cliente #customer , meu nome é #myName, como vc está #leadName?", "Oi #customer, vi que se interessou em X", "Desculpe o incômodo, podemos conversar?", "Olá, bom dia!", "A sua proposta está aqui #customer, de uma olhada! , meu nome é #myName, como vc está #leadName?"]
+      }
+
+      // countryCodes
+      // useDesktop
+      // sentConfirmation
+      // language
+
+      const { Language, Country, SentConfirmation, UseDesktop, userData } = settings || {}
+
+      Object.entries(countryCodes).forEach(([k, v], i) => {
+        const isSelected = Country?.toLowerCase() === k?.toLowerCase();
+        countrySelect.options[countrySelect?.options?.length] = new Option(`+${v} ${k?.toUpperCase()}`, k?.toLowerCase(), isSelected ? true : false, isSelected ? true : false)
+      })
+
+      Array.isArray(toTranslate?.[0]?.tsl) && toTranslate[0].tsl.forEach((e, i) => {
+        const lang = e?.split("_")?.[1]
+        const isSelected = lang?.toLowerCase() === Language?.toLowerCase();
+
+        if (typeof lang == "string") {
+          languageSelect.options[languageSelect?.options?.length] = new Option(lang, lang, isSelected ? true : false, isSelected ? true : false)
+        }
+      })
+
+      sentConfirmInput.checked = SentConfirmation;
+      useDesktInput.checked = UseDesktop
+
+      let [r, g, b] = [70, 235, 163]
+
+      Array.isArray(t?.ctMessages) && t.ctMessages?.forEach((e, i) => {
+        if (i >= 9) return;
+        r += 20, b += 70;
+        const msgToAdd = `<div class="custom-msg-board" style="background:rgb(${r},${g},${b})" id=${"ctmsg" + i}>
+        ${e}</div>`;
+        ctMessageSettings.insertAdjacentHTML('beforeend', msgToAdd);
+      })
+
+    }
+
     settingsBt.addEventListener("click", openSettingsMenu)
 
     saveConfigBt.addEventListener("click", saveSettings)
@@ -265,24 +311,7 @@
           }
         })
 
-        let t = {
-          ctMessages: ["Olá cliente #customer , meu nome é #myName, como vc está #leadName?", "Oi #customer, vi que se interessou em X", "Desculpe o incômodo, podemos conversar?", "Olá, bom dia!", "A sua proposta está aqui #customer, de uma olhada! , meu nome é #myName, como vc está #leadName?"]
-        }
-
-        t = JSON.stringify(t)
-
-        console.log("settings", settings)
-        t = JSON.parse(t)
-
-        let [r, g, b] = [70, 235, 163]
-
-        Array.isArray(t?.ctMessages) && t?.ctMessages?.forEach((e, i) => {
-          if (i >= 9) return;
-          r += 20, b += 70;
-          const msgToAdd = `<div class="custom-msg-board" style="background:rgb(${r},${g},${b})" id=${"ctmsg" + i}>
-            ${e}</div>`;
-          ctMessageSettings.insertAdjacentHTML('beforeend', msgToAdd);
-        })
+        mountSettings();
 
         ZOHO.CRM.API.getAllRecords({ Entity: "Leads" }).then((res2) => {
 
