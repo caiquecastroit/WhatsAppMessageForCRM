@@ -244,6 +244,34 @@
         return
       }
 
+      const ctMessagePicker = document.querySelectorAll(".custom-msg-picker")
+
+      console.log("pickerr", ctMessagePicker)
+
+
+      console.log("ctmss", settings)
+
+      let { userData } = settings || {}
+
+
+      try {
+        if (typeof userData == 'string') userData = JSON.parse(userData);
+        if (typeof userData?.ctMessages == 'string') userData = JSON.parse(userData.ctMessages)
+      } catch (err) {
+        console.log("Erro ao parsear a variável 'userData'", err)
+      }
+
+      ctMessagePicker.forEach((e1) => {
+        console.log("eee",e1)
+        console.log("data",userData)
+        Array.isArray(userData) && userData.forEach((e2)=>{
+          const ctMsgBt = `<div class="custom-msg-on"><p>${e2}</p></div>`
+          typeof e2 == 'string' && e1.insertAdjacentHTML("beforeend",ctMsgBt)
+        })
+
+      })
+
+
       console.log("openCustomMessages children", children?.[children?.length - 1])
 
       const [parentId, phone] = e?.target?.id?.split("c") || []
@@ -261,10 +289,10 @@
 
       const { background, color } = e?.target?.style || {}
 
-      const editHTML = `<textarea style="border:none;padding:1px;border-radius:10px;resize:none;min-width:168px;max-width:168px;
-      background:${background || "white"};color:${color || "black"}">${innerText}</textarea>`;
+      const editHTML = `<textarea class="txt-msg-area" style="outline:none;border:none;border-radius:10px;resize:none;min-width:168px;max-width:168px;
+      background-image:linear-gradient(rgb(10, 68, 64),rgb(19, 132, 125));color:rgb(75, 255, 147)">${innerText}</textarea>`;
 
-      e.target.innerHTML = editHTML
+      e.target.innerHTML = editHTML;
 
       const editableMsg = document.getElementsByTagName("textarea")
 
@@ -300,8 +328,6 @@
       sentConfirmInput.checked = SentConfirmation || false;
       useDesktInput.checked = UseDesktop || false;
 
-      let [r, g, b] = [70, 235, 163]
-
       try {
         if (typeof userData == 'string') userData = JSON.parse(userData);
         if (typeof userData?.ctMessages == 'string') userData.ctMessages = JSON.parse(userData.ctMessages)
@@ -311,8 +337,7 @@
 
       Array.isArray(userData?.ctMessages) && userData.ctMessages?.forEach((e, i) => {
         if (i >= 9) return;
-        r += 20, b += 70;
-        const msgToAdd = `<div class="custom-msg-board" style="background:rgb(${r},${g},${b})" id=${"ctmsg" + i}>
+        const msgToAdd = `<div class="custom-msg-board" style="" id=${"ctmsg" + i}>
         <div class="custom-msg-txt" style="pointer-events:none;">${e}</div></div>`;
         ctMessageSettings.insertAdjacentHTML('beforeend', msgToAdd);
       })
@@ -325,7 +350,7 @@
 
     addMsgBt.addEventListener("click", () => {
       const len = ctMessageSettings?.children?.length
-      const msgToAdd = `<div class="custom-msg-board" style="background:grey" id=${"ctmsg" + len}>
+      const msgToAdd = `<div class="custom-msg-board" style="" id=${"ctmsg" + len}>
         <div class="custom-msg-txt" style="pointer-events:none;">Configure your message</div></div>`;
       ctMessageSettings.insertAdjacentHTML('beforeend', msgToAdd);
 
@@ -391,11 +416,6 @@
                         <div class="custom-msg-bt dd" id=${e?.id + "c" + validPhone}>
                           <img class="custom-msg-img" src="./assets/msg-custom.png" />
                           <div class="custom-msg-picker" style="display:none;position:absolute;">
-                            <section>1</section>
-                            <section>2</section>
-                            <section>3</section>
-                            <section>4</section>
-                            <section>5</section>
                             </div>
                           </div>
                         </div>
@@ -553,11 +573,10 @@
 
   .custom-msg-picker {
     position: absolute;
-    width: 300px;
-    height: 300px;
-    left: 170px;
-    top: auto;
-    bottom: auto;
+    width: 520px;
+    height: 100px;
+    right: 20px;
+    top: -50px;
     background: rgb(0, 138, 129, 0.4);
     backdrop-filter: blur(5px);
     border-radius: 20px;
@@ -567,17 +586,37 @@
     padding: 10px;
     gap: 5px;
     justify-content: center;
-    grid-template-columns: repeat(auto-fit, 200px);
-    grid-template-rows: repeat(auto-fit, 60px);
-    z-index: 10
+    grid-template-columns: 170px 170px 170px;
+    z-index: 10;
   }
 
-  section {
+  .custom-msg-on {
     background: rgb(50, 236, 124);
     display: grid;
     justify-content: center;
     align-items: center;
     border-radius: 5px;
+    padding: 3px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    color: rgb(10, 68, 64);
+    min-height: 40px;
+  }
+
+  p {
+    word-break: break-all;
+  }
+
+  .custom-msg-on::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .custom-msg-on {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 
   .settings-bt {
@@ -697,7 +736,8 @@
     overflow-y: scroll;
     padding: 4px;
     border-radius: 10px;
-    color: rgb(0, 115, 108)
+    color: whitesmoke;
+    background-image: linear-gradient(rgb(10, 68, 64), rgb(19, 132, 125));
   }
 
   .custom-msg-board::-webkit-scrollbar {
@@ -710,6 +750,16 @@
     /* IE and Edge */
     scrollbar-width: none;
     /* Firefox */
+  }
+
+  .txt-msg-area::-webkit-scrollbar {
+    display: none;
+  }
+
+  .txt-msg-area::-webkit-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
   }
 
   .save-settings-bt {
