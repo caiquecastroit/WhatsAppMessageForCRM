@@ -6,7 +6,6 @@
   <script src="ZSDK.js" charset="utf-8"></script>
   <script src="ZohoCrmHelper.js" charset="utf-8"></script>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-
 </head>
 
 <body>
@@ -46,6 +45,9 @@
       <!--custom-msg-board divs will be pushed here-->
     </div>
     <div class="save-settings-bt">Save</div>
+    <div class="help-bt"><img style="height:100%;width:100%" src="./assets/help.png" /></div>
+    <div class="add-msg-bt"><img style="height:100%;width:100%" src="./assets/add-ct.png" /></div>
+
   </div>
   <main style="height:750px;">
     <!--375 metade-->
@@ -81,7 +83,7 @@
     /////////////////////////////  TRADUÇÕES  /////////////////////////////////
     /////////////////////////////  TRADUÇÕES  /////////////////////////////////
     const toTranslate = [
-      { comp: "", tsl: ["Apply_english","Aplicar_portugues", ], onFalse: "Apply" },
+      { comp: "", tsl: ["Apply_english", "Aplicar_portugues",], onFalse: "Apply" },
       { comp: "", tsl: ["Configurar_portugues"], onFalse: "Settings" },
       { comp: "", tsl: ["Cl. Potenciais_portugues"], onFalse: "Leads" },
       { comp: "", tsl: ["Contas_portugues"], onFalse: "Accounts" },
@@ -132,9 +134,9 @@
 
         ZOHO.CRM.API.insertRecord(initialConfig).then((res) => {
           console.log("##insertRecord", res)
-          //ZOHO.CRM.UI.Popup.close()
+          ZOHO.CRM.UI.Popup.close()
         }).catch((err) => {
-          //ZOHO.CRM.UI.Popup.close()
+          ZOHO.CRM.UI.Popup.close()
           console.log("##insertRecord - error:", err)
         })
         return
@@ -142,7 +144,13 @@
 
       const configs = { Entity: extensionModule, APIData: { Name: "settings" }, Trigger: [] }
 
-      const { Language, Country, SentConfirmation, UseDesktop, userData } = settings;
+      const { Language, Country, SentConfirmation, UseDesktop } = settings;
+
+      const newUserData = []
+
+      for (let e of ctMessageSettings?.children) {
+        typeof e?.innerText == "string" && e?.innerText?.length > 3 && newUserData.push(e?.innerText)
+      }
 
       console.log("Settings exists, updating...")
 
@@ -154,10 +162,8 @@
 
       configs.APIData.id = settings?.id
 
-      console.log("countryy", countrySelect)
-
       const keysToAdd = [{ k: "Language", v: languageSelect?.value }, { k: "Country", v: countrySelect?.value?.toUpperCase() }, { k: "SentConfirmation", v: sentConfirmInput?.checked },
-      { k: "UseDesktop", v: useDesktInput?.checked }, { k: "userData", v: JSON.stringify({ ctMessages: [] }) }];
+      { k: "UseDesktop", v: useDesktInput?.checked }, { k: "userData", v: { ctMessages: JSON.stringify(newUserData) } }];
 
       keysToAdd.forEach((e) => {
         configs.APIData[namespace + "__" + e?.k] = e?.v
@@ -167,11 +173,11 @@
 
       ZOHO.CRM.API.updateRecord(configs).then((res) => {
         console.log("##updateRecord result", res)
-        //ZOHO.CRM.UI.Popup.close()
+        ZOHO.CRM.UI.Popup.close()
 
       }).catch((err) => {
         console.log("##updateRecord error:" + JSON.stringify(err))
-        //ZOHO.CRM.UI.Popup.close()
+        ZOHO.CRM.UI.Popup.close()
       })
 
     }
@@ -245,18 +251,45 @@
 
     }
 
-    const mountSettings = () => {
+    const editCustomMessage = (e) => {
+      e.stopPropagation()
+      console.log("eee", e?.target)
 
-      let t = {
-        ctMessages: ["Olá cliente #customer , meu nome é #myName, como vc está #leadName?", "Oi #customer, vi que se interessou em X", "Desculpe o incômodo, podemos conversar?", "Olá, bom dia!", "A sua proposta está aqui #customer, de uma olhada! , meu nome é #myName, como vc está #leadName?"]
+      if (e?.target?.localName == "textarea") {
+        return
       }
+
+      const { innerText } = e?.target || {}
+
+      const { background, color } = e?.target?.style || {}
+
+      const editHTML = `<textarea style="border:none;padding:1px;border-radius:10px;resize:none;min-width:168px;max-width:168px;
+      background:${background || "white"};color:${color || "black"}">${innerText}</textarea>`;
+
+      e.target.innerHTML = editHTML
+
+      const editableMsg = document.getElementsByTagName("textarea")
+
+      for (let e of editableMsg) {
+        e.addEventListener("keyup", (e) => {
+          if (e?.key?.toLowerCase() == "escape") {
+            console.log("self", e.target)
+            const { innerHTML } = e?.target || {}
+            e.target.parentNode.innerHTML = `<div class="custom-msg-txt" style="pointer-events:none;">${e?.target?.value}</div>`
+          }
+        })
+      }
+
+    }
+
+    const mountSettings = () => {
 
       // countryCodes
       // useDesktop
       // sentConfirmation
       // language
 
-      const { Language, Country, SentConfirmation, UseDesktop, userData } = settings || {}
+      let { Language, Country, SentConfirmation, UseDesktop, userData } = settings || {}
 
       Object.entries(countryCodes).forEach(([k, v], i) => {
         const isSelected = Country?.toLowerCase() === k?.toLowerCase();
@@ -272,16 +305,27 @@
         }
       })
 
+      console.log("user",userData)
+
       sentConfirmInput.checked = SentConfirmation || false;
       useDesktInput.checked = UseDesktop || false;
 
       let [r, g, b] = [70, 235, 163]
 
-      Array.isArray(t?.ctMessages) && t.ctMessages?.forEach((e, i) => {
+      try{
+        if(typeof userData == 'string') userData = JSON.parse(userData);
+        if(typeof userData?.ctMessages == 'string') userData.ctMessages = JSON.parse(userData.ctMessages)
+      }catch(err){
+        console.log("Erro ao parsear a variável 'userData'",err)
+      }
+
+      console.log("user now",userData)
+
+      Array.isArray(userData?.ctMessages) && userData.ctMessages?.forEach((e, i) => {
         if (i >= 9) return;
         r += 20, b += 70;
         const msgToAdd = `<div class="custom-msg-board" style="background:rgb(${r},${g},${b})" id=${"ctmsg" + i}>
-        ${e}</div>`;
+        <div class="custom-msg-txt" style="pointer-events:none;">${e}</div></div>`;
         ctMessageSettings.insertAdjacentHTML('beforeend', msgToAdd);
       })
 
@@ -312,6 +356,12 @@
         })
 
         mountSettings();
+
+        const customMsgBoards = document.querySelectorAll(".custom-msg-board")
+
+        customMsgBoards.forEach((e) => {
+          e.addEventListener("click", editCustomMessage)
+        })
 
         ZOHO.CRM.API.getAllRecords({ Entity: "Leads" }).then((res2) => {
 
@@ -682,6 +732,31 @@
 
   .save-settings-bt:hover {
     background: rgb(16, 159, 149);
+  }
+
+  .add-msg-bt {
+    position: absolute;
+    height: 40px;
+    width: 40px;
+    top: 70px;
+    right: 70px;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+
+    cursor: pointer
+  }
+
+  .help-bt {
+    position: absolute;
+    height: 40px;
+    width: 40px;
+    top: 70px;
+    right: 10px;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
   }
 </style>
 
