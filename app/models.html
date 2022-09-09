@@ -74,6 +74,7 @@
     const countrySelect = document.querySelector(".country-select")
     const languageSelect = document.querySelector(".language-select")
     const sentConfirmInput = document.querySelector(".sentconf-checkbox")
+    const addMsgBt = document.querySelector(".add-msg-bt")
 
     const countryCodes = {
       usa: "1",
@@ -169,8 +170,6 @@
         configs.APIData[namespace + "__" + e?.k] = e?.v
       })
 
-      console.log("configs", configs)
-
       ZOHO.CRM.API.updateRecord(configs).then((res) => {
         console.log("##updateRecord result", res)
         ZOHO.CRM.UI.Popup.close()
@@ -253,7 +252,6 @@
 
     const editCustomMessage = (e) => {
       e.stopPropagation()
-      console.log("eee", e?.target)
 
       if (e?.target?.localName == "textarea") {
         return
@@ -273,7 +271,6 @@
       for (let e of editableMsg) {
         e.addEventListener("keyup", (e) => {
           if (e?.key?.toLowerCase() == "escape") {
-            console.log("self", e.target)
             const { innerHTML } = e?.target || {}
             e.target.parentNode.innerHTML = `<div class="custom-msg-txt" style="pointer-events:none;">${e?.target?.value}</div>`
           }
@@ -283,11 +280,6 @@
     }
 
     const mountSettings = () => {
-
-      // countryCodes
-      // useDesktop
-      // sentConfirmation
-      // language
 
       let { Language, Country, SentConfirmation, UseDesktop, userData } = settings || {}
 
@@ -305,21 +297,17 @@
         }
       })
 
-      console.log("user",userData)
-
       sentConfirmInput.checked = SentConfirmation || false;
       useDesktInput.checked = UseDesktop || false;
 
       let [r, g, b] = [70, 235, 163]
 
-      try{
-        if(typeof userData == 'string') userData = JSON.parse(userData);
-        if(typeof userData?.ctMessages == 'string') userData.ctMessages = JSON.parse(userData.ctMessages)
-      }catch(err){
-        console.log("Erro ao parsear a variável 'userData'",err)
+      try {
+        if (typeof userData == 'string') userData = JSON.parse(userData);
+        if (typeof userData?.ctMessages == 'string') userData.ctMessages = JSON.parse(userData.ctMessages)
+      } catch (err) {
+        console.log("Erro ao parsear a variável 'userData'", err)
       }
-
-      console.log("user now",userData)
 
       Array.isArray(userData?.ctMessages) && userData.ctMessages?.forEach((e, i) => {
         if (i >= 9) return;
@@ -334,6 +322,18 @@
     settingsBt.addEventListener("click", openSettingsMenu)
 
     saveConfigBt.addEventListener("click", saveSettings)
+
+    addMsgBt.addEventListener("click", () => {
+      const len = ctMessageSettings?.children?.length
+      const msgToAdd = `<div class="custom-msg-board" style="background:grey" id=${"ctmsg" + len}>
+        <div class="custom-msg-txt" style="pointer-events:none;">Configure your message</div></div>`;
+      ctMessageSettings.insertAdjacentHTML('beforeend', msgToAdd);
+
+      const currentBoard = document.getElementById(`ctmsg${len}`)
+
+      currentBoard.addEventListener("click", editCustomMessage)
+
+    })
 
     ZOHO.embeddedApp.on("PageLoad", function (app) {
 
