@@ -189,6 +189,7 @@
     }
 
     const capitalize = (string) => {
+      if(typeof string != 'string') return "";
       return string?.charAt(0)?.toUpperCase() + string?.slice(1);
     }
 
@@ -279,15 +280,13 @@
 
       const { Mobile, Phone, Full_Name, First_Name } = currentLead || {}
 
-      let message1 = `cut1#%0a%0aA ZOHO nos indicou para ajudar você com sua conta.%0a%0aMeu nome é #self da itgoal.com.br, 
-      especialista ZOHO há 8 anos.%0a%0aPodemos falar por video ou por aqui, como desejar.`
+      let message1 = `cut1#%0a%0aA ZOHO nos indicou para ajudar você com sua conta.%0a%0aMeu nome é #self da itgoal.com.br, especialista ZOHO há 8 anos.%0a%0aPodemos falar por video ou por aqui, como desejar.`
 
-      let message2 = `cut1#%0a%0aO intuito do meu contato é ajudar, oferecendo um serviço de atendimento e consultoria de excelência para todos clientes que possuem 
-      uma conta ZOHO.%0a%0aPrometo não incomodar se isso não lhe interessar, basta nos sinalizar.%0a%0aQue tal uma reunião rápida de 15min para eu explicar sobre as soluções e serviços?`
+      let message2 = `cut1#%0a%0aO intuito do meu contato é ajudar, oferecendo um serviço de atendimento e consultoria de excelência para todos clientes que possuem uma conta ZOHO.%0a%0aPrometo não incomodar se isso não lhe interessar, basta nos sinalizar.%0a%0aQue tal uma reunião rápida de 15min para eu explicar sobre as soluções e serviços?`
 
       if (typeof First_Name == 'string' || typeof Full_Name == 'string') {
-        message1 = message1.replace("cut1#", "Oi " + First_Name || Full_Name + ", tudo bem?")
-        message2 = message2.replace("cut1#", "Olá " + First_Name || Full_Name + " é o " + currentUser + " novamente, tudo bem?")
+        message1 = message1.replace("cut1#", "Oi " + capitalize(First_Name || Full_Name) + ", tudo bem?")
+        message2 = message2.replace("cut1#", "Olá " + capitaze(First_Name || Full_Name) + " é o " + currentUser + " novamente, tudo bem?")
 
       } else {
         message1 = message1.replace("cut1#", "Olá, Desculpas, mas seu nome não chegou para nós, tudo bem?")
