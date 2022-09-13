@@ -47,7 +47,6 @@
     <div class="save-settings-bt">Save</div>
     <div class="help-bt"><img style="height:100%;width:100%" src="./assets/help.png" /></div>
     <div class="add-msg-bt"><img style="height:100%;width:100%" src="./assets/add-ct.png" /></div>
-
   </div>
   <main style="height:750px;">
     <!--375 metade-->
@@ -55,6 +54,8 @@
     </div>
     <div class="leads-fila">
     </div>
+    <div class="bot-mode-bt" style="position: absolute;height: 50px;"><img style="height:100%;width:100%"
+        src="./assets/bot-mode.png" /></div>
   </main>
 
   <script>
@@ -78,6 +79,7 @@
     const languageSelect = document.querySelector(".language-select")
     const sentConfirmInput = document.querySelector(".sentconf-checkbox")
     const addMsgBt = document.querySelector(".add-msg-bt")
+    const botMode = document.querySelector(".bot-mode-bt")
 
     const leadsQuery = []
 
@@ -229,7 +231,7 @@
         console.log("#removeLead - err:", err)
       })
 
-      console.log("tries",currentTries,ContactsLimit)
+      console.log("tries", currentTries, ContactsLimit)
 
       if (currentTries >= ContactsLimit) {
         elementToRemove.style.left = "-2000px";
@@ -244,6 +246,84 @@
     }
 
     const loadFila = () => {
+
+    }
+
+    let botInterval;
+
+    let idx = 0;
+
+    const msgLeadsBotMode = () => {
+
+      const currentLead = leadsQuery?.[idx]
+
+      if (!currentLead) {
+        clearInterval(botInterval)
+        botMode.style.height = "40px"
+        console.log("Acabaram os Leads")
+        idx = 0;
+        return
+      }
+
+      const ctFields = {}
+
+      Object.entries({ ...currentLead }).forEach(([k, v], i) => {
+        if (k?.includes(namespace + "__")) {
+          ctFields[k?.split(namespace + "__")?.[1]] = v;
+        }
+      })
+
+      const { Language, Country, SentConfirmation, UseDesktop } = settings || {}
+
+      const { ContactTries } = ctFields || {}
+
+      const { Mobile, Phone, Full_Name, First_Name } = currentLead || {}
+
+      let message1 = `cut1#%0a%0aA ZOHO nos indicou para ajudar você com sua conta.%0a%0aMeu nome é #self da itgoal.com.br, 
+      especialista ZOHO há 8 anos.%0a%0aPodemos falar por video ou por aqui, como desejar.`
+
+      let message2 = `cut1#%0a%0aO intuito do meu contato é ajudar, oferecendo um serviço de atendimento e consultoria de excelência para todos clientes que possuem 
+      uma conta ZOHO.%0a%0aPrometo não incomodar se isso não lhe interessar, basta nos sinalizar.%0a%0aQue tal uma reunião rápida de 15min para eu explicar sobre as soluções e serviços?`
+
+      if (typeof First_Name == 'string' || typeof Full_Name == 'string') {
+        message1 = message1.replace("cut1#", "Oi " + First_Name || Full_Name + ", tudo bem?")
+        message2 = message2.replace("cut1#", "Olá " + First_Name || Full_Name + " é o " + currentUser + " novamente, tudo bem?")
+
+      } else {
+        message1 = message1.replace("cut1#", "Olá, Desculpas, mas seu nome não chegou para nós, tudo bem?")
+        message2 = message2.replace("cut1#", "Olá, desculpas, mas ainda não sei seu nome, é o " + currentUser + " novamente, tudo bem?")
+      }
+
+      message1 = message1.replace("#self", currentUser)
+      message2 = message1.replace("#self", currentUser)
+
+      if (ContactTries >= settings?.ContactsLimit) {
+        idx++
+        return
+      }
+
+      const standardMsg = [message1, message2]
+
+      window.open(`https://${UseDesktop ? "api" : "web"}.whatsapp.com/send?phone=+${countryCodes?.[Country?.toLowerCase()] || "1"}${Mobile || Phone}&text=${standardMsg?.[ContactTries || 0] || "oi"}`, "_blank")
+      idx++
+
+    }
+
+    const botModeOn = (e) => {
+      e?.stopPropagation()
+
+      if (botMode.style.height == "400px") {
+        botMode.style.height = "40px"
+        clearInterval(botInterval)
+
+      } else {
+        botMode.style.height = "400px"
+        botMode.style.backdropFilter = "blur(5px)"
+        botMode.style.background = "rgb(0, 138, 129, 0.4);"
+
+        botInterval = setInterval(msgLeadsBotMode, 10000)
+
+      }
 
     }
 
@@ -416,6 +496,8 @@
     settingsBt.addEventListener("click", openSettingsMenu)
 
     saveConfigBt.addEventListener("click", saveSettings)
+
+    botMode.addEventListener("click", botModeOn)
 
     addMsgBt.addEventListener("click", () => {
       const len = ctMessageSettings?.children?.length
@@ -787,6 +869,14 @@
 
   .close-area {
     background: red;
+  }
+
+  .bot-mode-bt {
+    width: auto;
+    bottom: 10px;
+    left: 0px;
+    cursor: pointer;
+    transition: all 0.7s ease 0s
   }
 
   button {
