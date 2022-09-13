@@ -51,6 +51,8 @@
   </div>
   <main style="height:750px;">
     <!--375 metade-->
+    <div class="custom-msg-picker" style="display:none;position:absolute;">
+    </div>
     <div class="leads-fila">
     </div>
   </main>
@@ -63,6 +65,7 @@
     let baseText;
     let newWindow;
     let settings;
+    let currentUser;
 
     const documentBody = document.getElementsByTagName("body")
     const settingsBt = document.querySelector(".settings-bt")
@@ -75,6 +78,8 @@
     const languageSelect = document.querySelector(".language-select")
     const sentConfirmInput = document.querySelector(".sentconf-checkbox")
     const addMsgBt = document.querySelector(".add-msg-bt")
+
+    const leadsQuery = []
 
     const countryCodes = {
       usa: "1",
@@ -181,43 +186,115 @@
 
     }
 
-    const removeFromList = (e) => {
+    const capitalize = (string) => {
+      return string?.charAt(0)?.toUpperCase() + string?.slice(1);
+    }
+
+    const removeLead = (leadId) => {
+
+      if (typeof leadId != 'string') {
+        console.log("#removeLead - err", "Tipo da variável 'leadId' está inválido.")
+        return
+      }
+
+      const { ContactsLimit } = settings || {}
+
+      const elementToRemove = document.getElementById(leadId)
+
+      let leadIndex;
+
+      const currentLead = leadsQuery.find((e, i) => {
+        if (e?.id == leadId) {
+          leadIndex = i
+          return true
+        }
+      })
+
+      let currentTries = currentLead?.[[namespace] + "__ContactTries"]
+
+      if (!currentTries) currentTries = 0;
+
+      const config = {
+        Entity: "Leads",
+        APIData: {
+          "id": leadId,
+          [namespace + "__ContactTries"]: ++currentTries
+        },
+        Trigger: []
+      }
+
+      ZOHO.CRM.API.updateRecord(config).then(function (data) {
+        console.log("#removeLead - res:", data)
+      }).catch((err) => {
+        console.log("#removeLead - err:", err)
+      })
+
+      console.log("tries",currentTries,ContactsLimit)
+
+      if (currentTries >= ContactsLimit) {
+        elementToRemove.style.left = "-2000px";
+
+        setTimeout(() => {
+          elementToRemove?.remove()
+          leadsQuery.splice(leadIndex, 1)
+        }, 400)
+
+      }
+
+    }
+
+    const loadFila = () => {
+
+    }
+
+    const sendStMsg = (e) => {
       e?.stopPropagation()
 
       console.log("removeFromList", e?.target)
 
       const [parentId, phone] = e?.target?.id?.split("s") || []
 
-      console.log('parentId', parentId)
-      console.log('phone', phone)
-      console.log("settings ins tarndad", settings)
+      let standardMsg = "Mensagem padrão #self e #lead"
 
-      const text = "aaaa"
+      const { Language, Country, SentConfirmation, UseDesktop } = settings || {}
 
-      const phoneCodes = { brasil: "55" }
+      const { Full_Name, First_Name, Last_Name } = leadsQuery.find((e) => e?.id == parentId) || {}
 
-      const { Country, SentConfirmation, UseDesktop } = settings || {}
+      standardMsg = standardMsg?.replaceAll("#lead", capitalize(First_Name || Full_Name || Last_Name))
+      standardMsg = standardMsg?.replaceAll("#self", capitalize(currentUser) || "")
 
-      typeof phone == 'string' && window.open(`https://${UseDesktop ? "api" : "web"}.whatsapp.com/send?phone=+${phoneCodes?.[Country?.toLowerCase()] || "1"}${phone}&text=${text}`, "_blank")
-
-      const elementToRemove = document.getElementById(parentId)
+      typeof phone == 'string' && window.open(`https://${UseDesktop ? "api" : "web"}.whatsapp.com/send?phone=+${countryCodes?.[Country?.toLowerCase()] || "1"}${phone}&text=${standardMsg}`, "_blank")
 
       if (SentConfirmation && confirm("A mensagem foi enviada?")) {
-
-        elementToRemove.style.left = "-2000px";
-        elementToRemove.style.left = "-2000px";
-        setTimeout(() => {
-          elementToRemove.remove()
-        }, 200)
+        removeLead(parentId)
         return
-      } else {
+
+      } else if (SentConfirmation) {
+        removeLead(parentId)
         return
       }
 
-      elementToRemove.style.left = "-2000px";
-      setTimeout(() => {
-        elementToRemove.remove()
-      }, 200)
+      removeLead(parentId)
+
+    }
+
+    const sendCustomMessage = (e) => {
+      e?.stopPropagation()
+
+      const [leadId, phone] = e?.target?.id?.split("t") || []
+
+      const { Language, Country, SentConfirmation, UseDesktop } = settings || {}
+
+      let ctMessage = e?.target?.innerText
+
+      const { Full_Name, First_Name, Last_Name } = leadsQuery.find((e) => e?.id == leadId) || {}
+
+      ctMessage = ctMessage?.replaceAll("#lead", capitalize(First_Name || Full_Name || Last_Name))
+      ctMessage = ctMessage?.replaceAll("#self", capitalize(currentUser) || "")
+
+      const wdw = window.open(`https://${UseDesktop ? "api" : "web"}.whatsapp.com/send?phone=${countryCodes?.[Country?.toLowerCase()] || "1"}${phone}&text=${ctMessage}`, "_blank")
+
+      console.log("window", wdw)
 
     }
 
@@ -233,26 +310,20 @@
     const openCustomMessages = (e) => {
       e?.stopPropagation()
       closeSettings()
-      let children = e?.target?.children;
-      children = children?.[children?.length - 1];
 
-      if (children?.style?.display == "none") {
-        closeAllPickers()
-        children.style.display = "grid"
-      } else {
-        children.style.display = "none"
+      const [parentId, phone] = e?.target?.id?.split("c") || []
+
+      const ctMessagePicker = document.querySelector(".custom-msg-picker");
+      ctMessagePicker.innerHTML = ""
+
+      if (ctMessagePicker.style.display == "grid") {
+        ctMessagePicker.style.display = "none"
         return
       }
 
-      const ctMessagePicker = document.querySelectorAll(".custom-msg-picker")
-
-      console.log("pickerr", ctMessagePicker)
-
-
-      console.log("ctmss", settings)
+      ctMessagePicker.style.display = "grid";
 
       let { userData } = settings || {}
-
 
       try {
         if (typeof userData == 'string') userData = JSON.parse(userData);
@@ -261,20 +332,18 @@
         console.log("Erro ao parsear a variável 'userData'", err)
       }
 
-      ctMessagePicker.forEach((e1) => {
-        console.log("eee",e1)
-        console.log("data",userData)
-        Array.isArray(userData) && userData.forEach((e2)=>{
-          const ctMsgBt = `<div class="custom-msg-on"><p>${e2}</p></div>`
-          typeof e2 == 'string' && e1.insertAdjacentHTML("beforeend",ctMsgBt)
-        })
+      Array.isArray(userData) && userData.forEach((e, i) => {
+        const ctMsgBt = `<div class="custom-msg-on" id="${parentId}t${phone}" ><p style="pointer-events:none">${e}</p></div>`
+        ctMessagePicker.insertAdjacentHTML("beforeend", ctMsgBt)
 
       })
 
+      const allCtMsgs = document.querySelectorAll(".custom-msg-on")
 
-      console.log("openCustomMessages children", children?.[children?.length - 1])
+      allCtMsgs.forEach((e) => {
+        e.addEventListener("click", sendCustomMessage)
+      })
 
-      const [parentId, phone] = e?.target?.id?.split("c") || []
 
     }
 
@@ -362,6 +431,15 @@
 
     ZOHO.embeddedApp.on("PageLoad", function (app) {
 
+      ZOHO.CRM.CONFIG.getCurrentUser().then(function (data) {
+
+        const { first_name, full_name } = data?.users?.[0]
+        currentUser = first_name
+
+      }).catch((err) => {
+        console.log("#getCurrentUser - err:", err)
+      })
+
       ZOHO.CRM.API.getAllRecords({ Entity: extensionModule }).then((res1) => {
 
         const { data } = res1 || {}
@@ -398,9 +476,9 @@
 
             const tries = e?.[namespace + "__ContactTries"]
 
-            if (!tries) e[namespace + "__ContactTries"] = 0;
+            if (typeof tries == 'number' && tries >= settings?.ContactsLimit) return;
 
-            if (tries == 2) return;
+            if (!tries) e[namespace + "__ContactTries"] = 0;
 
             const [eName, provider] = e?.Email?.split("@") || []
 
@@ -415,20 +493,19 @@
                         <div class="standard-msg-bt aa" id=${e?.id + "s" + validPhone}><img class="msg-img" src="./assets/msg-base.png" /></div>
                         <div class="custom-msg-bt dd" id=${e?.id + "c" + validPhone}>
                           <img class="custom-msg-img" src="./assets/msg-custom.png" />
-                          <div class="custom-msg-picker" style="display:none;position:absolute;">
-                            </div>
                           </div>
                         </div>
           </div`;
 
             leadsFila.insertAdjacentHTML('beforeend', leadHTML);
+            leadsQuery.push(e)
           })
 
           const standardMsg = document.querySelectorAll(".standard-msg-bt")
           const customMsg = document.querySelectorAll(".custom-msg-bt")
 
           standardMsg.forEach((e) => {
-            e.addEventListener("click", removeFromList)
+            e.addEventListener("click", sendStMsg)
           })
 
           customMsg.forEach((e) => {
@@ -443,9 +520,6 @@
       }).catch((err) => {
         console.log("#getAllRecords - settings", err)
       }) // fetchSettings
-
-
-
 
     })
 
@@ -574,9 +648,9 @@
   .custom-msg-picker {
     position: absolute;
     width: 520px;
-    height: 100px;
-    right: 20px;
-    top: -50px;
+    height: 300px;
+    left: 20px;
+    top: 30px;
     background: rgb(0, 138, 129, 0.4);
     backdrop-filter: blur(5px);
     border-radius: 20px;
@@ -586,7 +660,7 @@
     padding: 10px;
     gap: 5px;
     justify-content: center;
-    grid-template-columns: 170px 170px 170px;
+    grid-template-columns: repeat(auto-fit, 150px);
     z-index: 10;
   }
 
@@ -600,7 +674,8 @@
     overflow-y: scroll;
     overflow-x: hidden;
     color: rgb(10, 68, 64);
-    min-height: 40px;
+    height: fit-content;
+    cursor: pointer;
   }
 
   p {
