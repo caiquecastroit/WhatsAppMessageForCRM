@@ -189,7 +189,7 @@
     }
 
     const capitalize = (string) => {
-      if(typeof string != 'string') return "";
+      if (typeof string != 'string') return "";
       return string?.charAt(0)?.toUpperCase() + string?.slice(1);
     }
 
@@ -217,11 +217,15 @@
 
       if (!currentTries) currentTries = 0;
 
+      let date = new Date()
+      date = date?.toISOString()?.split('T')?.[0]
+
       const config = {
         Entity: "Leads",
         APIData: {
           "id": leadId,
-          [namespace + "__ContactTries"]: ++currentTries
+          [namespace + "__ContactTries"]: ++currentTries,
+          [namespace + "__LastContact"]: date
         },
         Trigger: []
       }
@@ -231,8 +235,6 @@
       }).catch((err) => {
         console.log("#removeLead - err:", err)
       })
-
-      console.log("tries", currentTries, ContactsLimit)
 
       if (currentTries >= ContactsLimit) {
         elementToRemove.style.left = "-2000px";
@@ -276,7 +278,7 @@
 
       const { Language, Country, SentConfirmation, UseDesktop } = settings || {}
 
-      const { ContactTries } = ctFields || {}
+      const { ContactTries, LastContact } = ctFields || {}
 
       const { Mobile, Phone, Full_Name, First_Name } = currentLead || {}
 
@@ -286,7 +288,7 @@
 
       if (typeof First_Name == 'string' || typeof Full_Name == 'string') {
         message1 = message1.replace("cut1#", "Oi " + capitalize(First_Name || Full_Name) + ", tudo bem?")
-        message2 = message2.replace("cut1#", "Olá " + capitaze(First_Name || Full_Name) + " é o " + currentUser + " novamente, tudo bem?")
+        message2 = message2.replace("cut1#", "Olá " + capitalize(First_Name || Full_Name) + " é o " + currentUser + " novamente, tudo bem?")
 
       } else {
         message1 = message1.replace("cut1#", "Olá, Desculpas, mas seu nome não chegou para nós, tudo bem?")
@@ -294,16 +296,36 @@
       }
 
       message1 = message1.replace("#self", currentUser)
-      message2 = message1.replace("#self", currentUser)
+      message2 = message2.replace("#self", currentUser)
 
       if (ContactTries >= settings?.ContactsLimit) {
         idx++
         return
       }
 
+      let validatePhone = Mobile || Phone
+      let useCC = false;
+
+      if(validatePhone?.length > 14 || validatePhone?.length < 8){
+        console.log("invalid phone for brazil")
+        return
+      }
+
+      if (validatePhone?.substring(0, 2) == "55") {
+        if ([11, 10].includes(validatePhone?.length)) useCC = true;
+      } else {
+        useCC = true;
+      }
+
+      if(useCC){
+        validatePhone = String(countryCodes?.[Country?.toLowerCase()] || "")+validatePhone
+      }
+
       const standardMsg = [message1, message2]
 
-      window.open(`https://${UseDesktop ? "api" : "web"}.whatsapp.com/send?phone=+${countryCodes?.[Country?.toLowerCase()] || "1"}${Mobile || Phone}&text=${standardMsg?.[ContactTries || 0] || "oi"}`, "_blank")
+      removeLead(currentLead?.id)
+
+      window.open(`https://${UseDesktop ? "api" : "web"}.whatsapp.com/send?phone=+${validatePhone}&text=${standardMsg?.[ContactTries || 0] || "oi"}`, "_blank")
       idx++
 
     }
@@ -328,8 +350,6 @@
 
     const sendStMsg = (e) => {
       e?.stopPropagation()
-
-      console.log("removeFromList", e?.target)
 
       const [parentId, phone] = e?.target?.id?.split("s") || []
 
