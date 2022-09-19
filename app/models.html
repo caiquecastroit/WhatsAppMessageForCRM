@@ -60,6 +60,21 @@
 
   <script>
 
+    function loadScript() {
+      const jsPath = "./js/";
+      [...arguments].forEach((e) => {
+        if (typeof e == 'string') {
+          const head = document.getElementsByTagName('head')[0];
+          const script = document.createElement('script');
+          script.charset = "utf-8";
+          script.src = jsPath + e + ".js";
+          head.appendChild(script);
+        }
+      })
+    }
+
+    loadScript("teste")
+
     const namespace = "testewhatsapp" // verificar ao escolher o nome da extensão
     const extensionModule = "testewhatsapp__extensionitgoal"
 
@@ -67,6 +82,8 @@
     let newWindow;
     let settings;
     let currentUser;
+    let page = 1;
+    let queryLimit = 0;
 
     const documentBody = document.getElementsByTagName("body")
     const settingsBt = document.querySelector(".settings-bt")
@@ -220,6 +237,8 @@
       let date = new Date()
       date = date?.toISOString()?.split('T')?.[0]
 
+      console.log("data para atualizar",date)
+
       const config = {
         Entity: "Leads",
         APIData: {
@@ -262,9 +281,11 @@
 
       if (!currentLead) {
         clearInterval(botInterval)
-        botMode.style.height = "40px"
-        console.log("Acabaram os Leads")
-        idx = 0;
+        //botMode.style.height = "40px"
+        //console.log("Acabaram os Leads")
+        //idx = 0;
+        page++
+        getLeads(true)
         return
       }
 
@@ -280,19 +301,26 @@
 
       const { ContactTries, LastContact } = ctFields || {}
 
-      const { Mobile, Phone, Full_Name, First_Name } = currentLead || {}
+      const { Mobile, Phone, First_Name,Company } = currentLead || {}
 
-      let message1 = `cut1#%0a%0aA ZOHO nos indicou para ajudar você com sua conta.%0a%0aMeu nome é #self da itgoal.com.br, especialista ZOHO há 8 anos.%0a%0aPodemos falar por video ou por aqui, como desejar.`
+      let message1 = `cut1#%0a%0aA ZOHO nos indicou para ajudar você com sua conta${Company? " da "+Company:""}.%0a%0aMeu nome é #self da itgoal.com.br, especialista ZOHO há 8 anos.%0a%0aPodemos falar por video ou por aqui, como desejar.`
 
-      let message2 = `cut1#%0a%0aO intuito do meu contato é ajudar, oferecendo um serviço de atendimento e consultoria de excelência para todos clientes que possuem uma conta ZOHO.%0a%0aPrometo não incomodar se isso não lhe interessar, basta nos sinalizar.%0a%0aQue tal uma reunião rápida de 15min para eu explicar sobre as soluções e serviços?`
+      /*
+O intuito do meu contato é ajudar, oferecendo Consultoria Gratuita para todos clientes que possuem uma conta ZOHO.
+Prometo não incomodar se isso não lhe interessar, basta nos sinalizar.
+Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
+      */
 
-      if (typeof First_Name == 'string' || typeof Full_Name == 'string') {
-        message1 = message1.replace("cut1#", "Oi " + capitalize(First_Name || Full_Name) + ", tudo bem?")
-        message2 = message2.replace("cut1#", "Olá " + capitalize(First_Name || Full_Name) + " é o " + currentUser + " novamente, tudo bem?")
+      let message2 = `cut1#%0a%0aO intuito do meu contato é ajudar, oferecendo Consultoria Gratuita para todos clientes que possuem uma conta ZOHO.
+.%0a%0aPrometo não incomodar se isso não lhe interessar, basta nos sinalizar.%0a%0aQue tal uma reunião rápida de 15min para eu explicar sobre as soluções e serviços?`
+
+      if (typeof First_Name == 'string') {
+        message1 = message1.replace("cut1#", "Oi " + capitalize(First_Name.trim()) + ", tudo bem?")
+        message2 = message2.replace("cut1#", "Olá " + capitalize(First_Name.trim()) + " é o " + currentUser + " novamente, tudo bem?")
 
       } else {
         message1 = message1.replace("cut1#", "Olá, Desculpas, mas seu nome não chegou para nós, tudo bem?")
-        message2 = message2.replace("cut1#", "Olá, desculpas, mas ainda não sei seu nome, é o " + currentUser + " novamente, tudo bem?")
+        message2 = message2.replace("cut1#", "Olá, Desculpas, mas ainda não sei seu nome, é o " + currentUser + " novamente, tudo bem?")
       }
 
       message1 = message1.replace("#self", currentUser)
@@ -305,20 +333,23 @@
 
       let validatePhone = Mobile || Phone
       let useCC = false;
-
-      if(validatePhone?.length > 14 || validatePhone?.length < 8){
-        console.log("invalid phone for brazil")
+/*
+      if (validatePhone?.length > 14 || validatePhone?.length < 8) {
+        console.log("Invalid phone for brazil")
         return
       }
 
+      */
       if (validatePhone?.substring(0, 2) == "55") {
         if ([11, 10].includes(validatePhone?.length)) useCC = true;
       } else {
         useCC = true;
       }
 
-      if(useCC){
-        validatePhone = String(countryCodes?.[Country?.toLowerCase()] || "")+validatePhone
+      console.log("validated phone",validatePhone)
+
+      if (useCC) {
+        validatePhone = String(countryCodes?.[Country?.toLowerCase()] || "") + validatePhone
       }
 
       const standardMsg = [message1, message2]
@@ -333,16 +364,16 @@
     const botModeOn = (e) => {
       e?.stopPropagation()
 
-      if (botMode.style.height == "400px") {
+      if (botMode.style.height == "100px") {
         botMode.style.height = "40px"
         clearInterval(botInterval)
 
       } else {
-        botMode.style.height = "400px"
+        botMode.style.height = "100px"
         botMode.style.backdropFilter = "blur(5px)"
         botMode.style.background = "rgb(0, 138, 129, 0.4);"
 
-        botInterval = setInterval(msgLeadsBotMode, 10000)
+        botInterval = setInterval(msgLeadsBotMode, 60000)
 
       }
 
@@ -475,6 +506,117 @@
 
     }
 
+    const getLeads = (turnRobotOn) => {
+
+      if(queryLimit > 50) {
+        clearInterval(botInterval)
+        botMode.style.height = "40px"
+        console.log("Acabaram os Leads")
+        idx = 0;
+        console.log("Limite de tentativas de achar leads atingido")
+        return 
+      }
+
+      if(turnRobotOn) leadsQuery.length = 0;
+
+      ZOHO.CRM.API.getAllRecords({ Entity: "Leads",sort_order:"asc",per_page:50,page:page}).then((res2) => {
+
+        Array.isArray(res2?.data) && res2.data.forEach((e,i) => {
+
+          if (!e?.Mobile && !e?.Phone) return;
+
+         // if(!i) console.log("Achar campos",e)
+
+          const { Lead_Status, id, Full_Name, Layout } = e || {}
+
+          if(!Layout?.name?.toLowerCase()?.includes("zoho")) return
+          
+          const ctFields = {}
+
+          Object.entries({ ...e }).forEach(([k, v], i) => {
+            if (k?.includes(namespace + "__")) {
+              ctFields[k?.split(namespace + "__")?.[1]] = v;
+            }
+          })
+
+          const { LastContact, ContactTries } = ctFields
+
+          validPhone = e?.Mobile || e?.Phone
+
+          const tries = ContactTries
+
+          if ((typeof tries == 'number' && tries >= settings?.ContactsLimit) || !["not contacted","prospecting"].includes(Lead_Status?.toLowerCase()?.trim())) return;
+
+          if (!tries) e[namespace + "__ContactTries"] = 0;
+
+          /// aqui
+
+          if (LastContact && typeof LastContact == 'string' && LastContact?.length == 10) {
+
+            const twoDaysAfterLastContact = new Date(LastContact);
+
+            twoDaysAfterLastContact.setDate(twoDaysAfterLastContact.getDate() + 2);
+
+            const currentDate = new Date();
+
+            if (currentDate.getTime() < twoDaysAfterLastContact.getTime()) {
+              return
+            }
+
+          }
+
+          ///
+          const [eName, provider] = e?.Email?.split("@") || []
+
+          const leadHTML = `
+<div class="lead-wrapper" id=${id} >
+            <div class="lead-infos">
+              <div class="lead-name"><div>Name - <b>${Full_Name?.toUpperCase() || "- - - - -"}</b></div></div>
+              <div class="lead-email"><div>Email - ${eName && provider ? eName + "<strong>@" + provider + "</strong>" : "- - - - -"}</div></div>
+              </div>
+            <div class="contact-tries">${e?.[namespace + "__ContactTries"]}</div>
+            <div class="send-msg-bt">
+              <div class="standard-msg-bt aa" id=${id + "s" + validPhone}><img class="msg-img" src="./assets/msg-base.png" /></div>
+              <div class="custom-msg-bt dd" id=${id + "c" + validPhone}>
+                <img class="custom-msg-img" src="./assets/msg-custom.png" />
+                </div>
+              </div>
+</div`;
+
+          leadsFila.insertAdjacentHTML('beforeend', leadHTML);
+          leadsQuery.push(e)
+        })
+
+        if(!leadsQuery?.length){
+          queryLimit++
+          page++
+          console.log("Procurando Leads na página",page)
+          return getLeads()
+        }
+
+        const standardMsg = document.querySelectorAll(".standard-msg-bt")
+        const customMsg = document.querySelectorAll(".custom-msg-bt")
+
+        standardMsg.forEach((e) => {
+          e.addEventListener("click", sendStMsg)
+        })
+
+        customMsg.forEach((e) => {
+          e.addEventListener("click", openCustomMessages)
+        })
+
+        console.log("Tamanha da fila de Leads:", leadsQuery)
+
+        queryLimit = 0;
+
+        if(turnRobotOn) botInterval = setInterval(msgLeadsBotMode, 60000);
+
+      }).catch((err) => {
+        console.log("#getAllRecords - leads", err)
+      }) // fetchLeads
+
+    }
+
     const mountSettings = () => {
 
       let { Language, Country, SentConfirmation, UseDesktop, userData } = settings || {}
@@ -561,62 +703,13 @@
 
         mountSettings();
 
+        getLeads()
+
         const customMsgBoards = document.querySelectorAll(".custom-msg-board")
 
         customMsgBoards.forEach((e) => {
           e.addEventListener("click", editCustomMessage)
         })
-
-        ZOHO.CRM.API.getAllRecords({ Entity: "Leads" }).then((res2) => {
-
-          Array.isArray(res2?.data) && res2.data.forEach((e) => {
-
-            if (!e?.Mobile && !e?.Phone) return;
-
-            validPhone = e?.Mobile || e?.Phone
-
-            const tries = e?.[namespace + "__ContactTries"]
-
-            if (typeof tries == 'number' && tries >= settings?.ContactsLimit) return;
-
-            if (!tries) e[namespace + "__ContactTries"] = 0;
-
-            const [eName, provider] = e?.Email?.split("@") || []
-
-            const leadHTML = `
-          <div class="lead-wrapper" id=${e?.id} >
-                      <div class="lead-infos">
-                        <div class="lead-name"><div>Name - <b>${e?.Full_Name?.toUpperCase() || "- - - - -"}</b></div></div>
-                        <div class="lead-email"><div>Email - ${eName && provider ? eName + "<strong>@" + provider + "</strong>" : "- - - - -"}</div></div>
-                        </div>
-                      <div class="contact-tries">${e?.[namespace + "__ContactTries"]}</div>
-                      <div class="send-msg-bt">
-                        <div class="standard-msg-bt aa" id=${e?.id + "s" + validPhone}><img class="msg-img" src="./assets/msg-base.png" /></div>
-                        <div class="custom-msg-bt dd" id=${e?.id + "c" + validPhone}>
-                          <img class="custom-msg-img" src="./assets/msg-custom.png" />
-                          </div>
-                        </div>
-          </div`;
-
-            leadsFila.insertAdjacentHTML('beforeend', leadHTML);
-            leadsQuery.push(e)
-          })
-
-          const standardMsg = document.querySelectorAll(".standard-msg-bt")
-          const customMsg = document.querySelectorAll(".custom-msg-bt")
-
-          standardMsg.forEach((e) => {
-            e.addEventListener("click", sendStMsg)
-          })
-
-          customMsg.forEach((e) => {
-            e.addEventListener("click", openCustomMessages)
-          })
-
-        }).catch((err) => {
-          console.log("#getAllRecords - leads", err)
-        }) // fetchLeads
-
 
       }).catch((err) => {
         console.log("#getAllRecords - settings", err)
