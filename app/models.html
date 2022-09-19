@@ -210,6 +210,17 @@
       return string?.charAt(0)?.toUpperCase() + string?.slice(1);
     }
 
+    const randomInterval = () => {
+      const int = settings?.IntervalSec || 60
+
+      const mult = +String(Math.random())?.[2] || 1
+
+      const randomizeInt = (4533 * mult) + int
+
+      return randomizeInt
+
+    }
+
     const removeLead = (leadId) => {
 
       if (typeof leadId != 'string') {
@@ -373,7 +384,7 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
         botMode.style.backdropFilter = "blur(5px)"
         botMode.style.background = "rgb(0, 138, 129, 0.4);"
 
-        botInterval = setInterval(msgLeadsBotMode, 60000)
+        botInterval = setInterval(msgLeadsBotMode, randomizeInt())
 
       }
 
@@ -523,7 +534,7 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
         idx = 0;
       }
 
-      ZOHO.CRM.API.getAllRecords({ Entity: "Leads", sort_order: "asc", per_page: 50, page: page }).then((res2) => {
+      ZOHO.CRM.API.getAllRecords({ Entity: "Leads", sort_order: "asc", per_page: 50, page: page || 1 }).then((res2) => {
 
         Array.isArray(res2?.data) && res2.data.forEach((e, i) => {
 
@@ -613,7 +624,7 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
 
         queryLimit = 0;
 
-        if (turnRobotOn) botInterval = setInterval(msgLeadsBotMode, 60000);
+        if (turnRobotOn) botInterval = setInterval(msgLeadsBotMode, randomizeInt());
 
       }).catch((err) => {
         console.log("#getAllRecords - leads", err)
@@ -623,7 +634,9 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
 
     const mountSettings = () => {
 
-      let { Language, Country, SentConfirmation, UseDesktop, userData } = settings || {}
+      let { Language, Country, SentConfirmation, UseDesktop, userData, Pagination } = settings || {}
+
+      page = typeof Pagination == "number" && Pagination > 5 ? Pagination - 5 : 1
 
       Object.entries(countryCodes).forEach(([k, v], i) => {
         const isSelected = Country?.toLowerCase() === k?.toLowerCase();
