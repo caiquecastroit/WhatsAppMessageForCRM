@@ -517,7 +517,11 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
         return
       }
 
-      if (turnRobotOn) leadsQuery.length = 0;
+      if (turnRobotOn) {
+        clearInterval(botInterval)
+        leadsQuery.length = 0
+        idx = 0;
+      }
 
       ZOHO.CRM.API.getAllRecords({ Entity: "Leads", sort_order: "asc", per_page: 50, page: page }).then((res2) => {
 
@@ -591,7 +595,7 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
           queryLimit++
           page++
           console.log("Procurando Leads na página", page)
-          return getLeads()
+          return getLeads(turnRobotOn)
         }
 
         const standardMsg = document.querySelectorAll(".standard-msg-bt")
