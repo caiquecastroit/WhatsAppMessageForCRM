@@ -237,7 +237,7 @@
       let date = new Date()
       date = date?.toISOString()?.split('T')?.[0]
 
-      console.log("data para atualizar",date)
+      console.log("data para atualizar", date)
 
       const config = {
         Entity: "Leads",
@@ -301,9 +301,9 @@
 
       const { ContactTries, LastContact } = ctFields || {}
 
-      const { Mobile, Phone, First_Name,Company } = currentLead || {}
+      const { Mobile, Phone, First_Name, Company } = currentLead || {}
 
-      let message1 = `cut1#%0a%0aA ZOHO nos indicou para ajudar você com sua conta${Company? " da "+Company:""}.%0a%0aMeu nome é #self da itgoal.com.br, especialista ZOHO há 8 anos.%0a%0aPodemos falar por video ou por aqui, como desejar.`
+      let message1 = `cut1#%0a%0aA ZOHO nos indicou para ajudar você com sua conta${Company ? " da " + Company : ""}.%0a%0aMeu nome é #self da itgoal.com.br, especialista ZOHO há 8 anos.%0a%0aPodemos falar por video ou por aqui, como desejar.`
 
       /*
 O intuito do meu contato é ajudar, oferecendo Consultoria Gratuita para todos clientes que possuem uma conta ZOHO.
@@ -333,20 +333,20 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
 
       let validatePhone = Mobile || Phone
       let useCC = false;
-/*
-      if (validatePhone?.length > 14 || validatePhone?.length < 8) {
-        console.log("Invalid phone for brazil")
-        return
-      }
-
-      */
+      /*
+            if (validatePhone?.length > 14 || validatePhone?.length < 8) {
+              console.log("Invalid phone for brazil")
+              return
+            }
+      
+            */
       if (validatePhone?.substring(0, 2) == "55") {
         if ([11, 10].includes(validatePhone?.length)) useCC = true;
       } else {
         useCC = true;
       }
 
-      console.log("validated phone",validatePhone)
+      console.log("validated phone", validatePhone)
 
       if (useCC) {
         validatePhone = String(countryCodes?.[Country?.toLowerCase()] || "") + validatePhone
@@ -508,29 +508,29 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
 
     const getLeads = (turnRobotOn) => {
 
-      if(queryLimit > 50) {
+      if (queryLimit > 50) {
         clearInterval(botInterval)
         botMode.style.height = "40px"
         console.log("Acabaram os Leads")
         idx = 0;
         console.log("Limite de tentativas de achar leads atingido")
-        return 
+        return
       }
 
-      if(turnRobotOn) leadsQuery.length = 0;
+      if (turnRobotOn) leadsQuery.length = 0;
 
-      ZOHO.CRM.API.getAllRecords({ Entity: "Leads",sort_order:"asc",per_page:50,page:page}).then((res2) => {
+      ZOHO.CRM.API.getAllRecords({ Entity: "Leads", sort_order: "asc", per_page: 50, page: page }).then((res2) => {
 
-        Array.isArray(res2?.data) && res2.data.forEach((e,i) => {
+        Array.isArray(res2?.data) && res2.data.forEach((e, i) => {
 
           if (!e?.Mobile && !e?.Phone) return;
 
-         // if(!i) console.log("Achar campos",e)
+          // if(!i) console.log("Achar campos",e)
 
           const { Lead_Status, id, Full_Name, Layout } = e || {}
 
-          if(!Layout?.name?.toLowerCase()?.includes("zoho")) return
-          
+          if (!Layout?.name?.toLowerCase()?.includes("zoho")) return
+
           const ctFields = {}
 
           Object.entries({ ...e }).forEach(([k, v], i) => {
@@ -545,7 +545,7 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
 
           const tries = ContactTries
 
-          if ((typeof tries == 'number' && tries >= settings?.ContactsLimit) || !["not contacted","prospecting"].includes(Lead_Status?.toLowerCase()?.trim())) return;
+          if ((typeof tries == 'number' && tries >= settings?.ContactsLimit) || !["not contacted", "prospecting"].includes(Lead_Status?.toLowerCase()?.trim())) return;
 
           if (!tries) e[namespace + "__ContactTries"] = 0;
 
@@ -587,10 +587,10 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
           leadsQuery.push(e)
         })
 
-        if(!leadsQuery?.length){
+        if (!leadsQuery?.length) {
           queryLimit++
           page++
-          console.log("Procurando Leads na página",page)
+          console.log("Procurando Leads na página", page)
           return getLeads()
         }
 
@@ -609,7 +609,7 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
 
         queryLimit = 0;
 
-        if(turnRobotOn) botInterval = setInterval(msgLeadsBotMode, 60000);
+        if (turnRobotOn) botInterval = setInterval(msgLeadsBotMode, 60000);
 
       }).catch((err) => {
         console.log("#getAllRecords - leads", err)
