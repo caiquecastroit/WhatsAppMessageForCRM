@@ -211,7 +211,7 @@
     }
 
     const randomInterval = () => {
-      const int = settings?.IntervalSec || 60
+      const int = (settings?.IntervalSec * 1000) || 60000
 
       const mult = +String(Math.random())?.[2] || 1
 
@@ -384,7 +384,7 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
         botMode.style.backdropFilter = "blur(5px)"
         botMode.style.background = "rgb(0, 138, 129, 0.4);"
 
-        botInterval = setInterval(msgLeadsBotMode, randomizeInt())
+        botInterval = setInterval(msgLeadsBotMode, randomInterval())
 
       }
 
@@ -624,7 +624,7 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
 
         queryLimit = 0;
 
-        if (turnRobotOn) botInterval = setInterval(msgLeadsBotMode, randomizeInt());
+        if (turnRobotOn) botInterval = setInterval(msgLeadsBotMode, randomInterval());
 
       }).catch((err) => {
         console.log("#getAllRecords - leads", err)
