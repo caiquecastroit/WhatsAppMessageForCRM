@@ -73,7 +73,7 @@
       })
     }
 
-    loadScript("teste")
+    loadScript("helpers")
 
     const namespace = "testewhatsapp" // verificar ao escolher o nome da extensão
     const extensionModule = "testewhatsapp__extensionitgoal"
@@ -211,6 +211,7 @@
     }
 
     const randomInterval = () => {
+      
       const int = (settings?.IntervalSec * 1000) || 60000
 
       const mult = +String(Math.random())?.[2] || 1
@@ -275,10 +276,6 @@
         }, 400)
 
       }
-
-    }
-
-    const loadFila = () => {
 
     }
 
@@ -620,7 +617,7 @@ Que tal uma reunião rápida de 15min para eu explicar sobre as soluções?
           e.addEventListener("click", openCustomMessages)
         })
 
-        console.log("Tamanha da fila de Leads:", leadsQuery)
+        console.log("Tamanha da fila de Leads:", leadsQuery?.length)
 
         queryLimit = 0;
 
